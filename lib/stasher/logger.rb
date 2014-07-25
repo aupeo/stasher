@@ -22,19 +22,19 @@ module Stasher
         end
       end
 
+      severity = format_severity(severity)
+
       if message.is_a? String
         message = format_message(severity, Time.now, progname, message).chomp
       end
 
-      severity = format_severity(severity)
-
       Stasher.log severity, message
 
       true
-    end    
+    end
 
     private
 
-    
+
   end
 end

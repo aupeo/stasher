@@ -8,38 +8,41 @@ describe Stasher::Logger do
   end
 
   it "logs messages that are at the configured level" do
-    Stasher.should_receive(:log).with('WARN', 'message')
+    allow(logger).to receive(:format_message).and_return('message')
+    expect(Stasher).to receive(:log).with('WARN', 'message')
 
     logger.warn 'message'
   end
 
   it "logs messages that are above the configured level" do
-    Stasher.should_receive(:log).with('ERROR', 'message')
+    allow(logger).to receive(:format_message).and_return('message')
+    expect(Stasher).to receive(:log).with('ERROR', 'message')
 
     logger.error 'message'
   end
 
   it "does not log messages that are below the configured level" do
-    Stasher.should_not_receive(:log)
+    expect(Stasher).not_to receive(:log)
 
     logger.info 'message'
   end
 
   it "formats the severity" do
-    Stasher.should_receive(:log).with('WARN', 'message')
+    allow(logger).to receive(:format_message).and_return('message')
+    expect(Stasher).to receive(:log).with('WARN', 'message')
 
     logger.add ::Logger::WARN, "message"
   end
 
   it "returns true" do
-    Stasher.stub(:log)
+    allow(Stasher).to receive(:log)
 
-    logger.add( ::Logger::WARN, "message" ).should be_true
+    expect(logger.add( ::Logger::WARN, "message" )).to eq(true)
   end
 
   context "when there is a block given" do
     it "yields to the block" do
-      Stasher.stub(:log)
+      allow(Stasher).to receive(:log)
 
       expect { |b|
         logger.add ::Logger::WARN, &b
@@ -47,25 +50,26 @@ describe Stasher::Logger do
     end
 
     it "logs the returned message" do
-      Stasher.should_receive(:log).with('WARN', 'message')
+      allow(logger).to receive(:format_message).and_return('message')
+      expect(Stasher).to receive(:log).with('WARN', 'message')
 
       logger.add ::Logger::WARN do
         "message"
-      end      
+      end
     end
   end
 
-  context "when the message is a string" do    
+  context "when the message is a string" do
     it "formats the message" do
-      logger.should_receive(:format_message).with(::Logger::WARN, an_instance_of(Time), nil, "message").and_return("formatted")
-      Stasher.stub(:log)
+      allow(logger).to receive(:format_message).with('WARN', an_instance_of(Time), nil, "message").and_return("formatted")
+      allow(Stasher).to receive(:log)
 
       logger.warn 'message'
     end
 
     it "renders the formatted message" do
-      logger.stub(:format_message).and_return("formatted")
-      Stasher.should_receive(:log).with('WARN', 'formatted')
+      allow(logger).to receive(:format_message).and_return("formatted")
+      expect(Stasher).to receive(:log).with('WARN', 'formatted')
 
       logger.warn 'message'
     end
@@ -75,14 +79,14 @@ describe Stasher::Logger do
     let (:message) { Object.new }
 
     it "does not format the message" do
-      logger.should_not_receive(:format_message)
-      Stasher.stub(:log)
+      expect(logger).not_to receive(:format_message)
+      expect(Stasher).to receive(:log)
 
       logger.warn message
     end
 
     it "logs the raw message object" do
-      Stasher.should_receive(:log).with('WARN', message)
+      expect(Stasher).to receive(:log).with('WARN', message)
 
       logger.warn message
     end

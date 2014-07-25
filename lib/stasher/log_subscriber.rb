@@ -29,7 +29,7 @@ module Stasher
       # Clear the scope at the end of the request
       Stasher::CurrentScope.clear!
     end
-    
+
     def sql(ev)
       payload = ev.payload
 
@@ -51,7 +51,8 @@ module Stasher
     private
 
     def log_event(type, data)
-      event = LogStash::Event.new('@fields' => data, '@tags' => [type], '@source' => Stasher.source)
+      event = LogStash::Event.new('@fields' => data, '@source' => Stasher.source)
+      event.tag(type)
       yield(event) if block_given?
       Stasher.logger << event.to_json + "\n"
     end

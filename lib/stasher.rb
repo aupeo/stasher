@@ -50,7 +50,7 @@ module Stasher
 
       # Initialize & set up instrumentation
       require 'stasher/rails_ext/action_controller/metal/instrumentation'
-      require 'logstash/event'      
+      require 'logstash/event'
       self.suppress_app_logs(app) if app.config.stasher.suppress_app_log
 
       # Redirect Rails' logger if requested
@@ -64,12 +64,12 @@ module Stasher
       # Initialize internal logger
       self.logger = app.config.stasher.logger || Logger.new("#{Rails.root}/log/logstash_#{Rails.env}.log")
       level = ::Logger.const_get(app.config.stasher.log_level.to_s.upcase) if app.config.stasher.log_level
-      self.logger.level = level || Logger::WARN
+      self.logger.send(:level=, level || Logger::WARN)
 
       self.enabled = true
     end
 
-    def self.suppress_app_logs(app)   
+    def self.suppress_app_logs(app)
       require 'stasher/rails_ext/rack/logger'
       Stasher.remove_existing_log_subscriptions
 
@@ -79,7 +79,7 @@ module Stasher
 
     def self.format_exception(type_name, message, backtrace)
       {
-        :exception => { 
+        :exception => {
           :name => type_name,
           :message => message,
           :backtrace => backtrace
@@ -98,7 +98,7 @@ module Stasher
           data.merge! self.format_exception(msg.class.name, msg.message, msg.backtrace.join("\n"))
           msg = "#{msg.class.name}: #{msg.message}"
           tags << 'exception'
-        else        
+        else
           # Strip ANSI codes from the message
           msg.gsub!(/\u001B\[[0-9;]+m/, '')
         end
@@ -109,10 +109,10 @@ module Stasher
         tags << severity.downcase
 
         event = LogStash::Event.new(
-          '@fields' => data, 
-          '@tags' => tags,
+          '@fields' => data,
           '@message' => msg,
           '@source' => Stasher.source)
+        tags.each { |t| event.tag(t) }
         self.logger << event.to_json + "\n"
       end
     end

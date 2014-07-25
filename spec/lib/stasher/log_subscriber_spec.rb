@@ -2,11 +2,12 @@ require 'spec_helper'
 
 describe Stasher::LogSubscriber do
   let(:logger) { MockLogger.new }
-  
+  let(:timestamp) { Time.new(2014,01,01,00,00,00,0) }
+
   before :each do
     Stasher.logger = logger
-    Stasher.stub(:source).and_return("source")
-    LogStash::Time.stub(:now => 'timestamp')
+    allow(Stasher).to receive(:source).and_return("source")
+    allow(Time).to receive(:now).and_return(timestamp)
   end
 
   subject(:subscriber) { Stasher::LogSubscriber.new }
@@ -20,21 +21,21 @@ describe Stasher::LogSubscriber do
       )
     }
 
-    let(:json) { 
-      '{"@source":"source","@tags":["request"],"@fields":{"method":"GET","ip":"127.0.0.1","params":{"foo":"bar"},' +
-      '"path":"/home","format":"application/json","controller":"home","action":"index"},"@timestamp":"timestamp"}' + "\n" 
+    let(:json) {
+      '{"@source":"source","tags":["request"],"@fields":{"method":"GET","ip":"127.0.0.1","params":{"foo":"bar"},' +
+      '"path":"/home","format":"application/json","controller":"home","action":"index"},"@timestamp":' + timestamp.to_json + ', "@version":"1"}' + "\n"
     }
 
     it 'calls all extractors and outputs the json' do
-      subscriber.should_receive(:extract_request).with(payload).and_return({:request => true})
-      subscriber.should_receive(:extract_current_scope).with(no_args).and_return({:custom => true})
+      expect(subscriber).to receive(:extract_request).with(payload).and_return({:request => true})
+      expect(subscriber).to receive(:extract_current_scope).with(no_args).and_return({:custom => true})
       subscriber.start_processing(event)
     end
 
     it "logs the event" do
       subscriber.start_processing(event)
 
-      logger.messages.first.should == json
+      expect(JSON.parse(logger.messages.first)).to eq(JSON.parse(json))
     end
   end
 
@@ -51,7 +52,7 @@ describe Stasher::LogSubscriber do
       it "does not log anything" do
         subscriber.sql(event)
 
-        logger.messages.should be_empty
+        expect(logger.messages).to be_empty
       end
     end
 
@@ -61,7 +62,7 @@ describe Stasher::LogSubscriber do
       it "does not log anything" do
         subscriber.sql(event)
 
-        logger.messages.should be_empty
+        expect(logger.messages).to be_empty
       end
     end
 
@@ -71,28 +72,28 @@ describe Stasher::LogSubscriber do
       it "does not log anything" do
         subscriber.sql(event)
 
-        logger.messages.should be_empty
+        expect(logger.messages).to be_empty
       end
     end
 
     context "for any other events" do
       let(:payload) { FactoryGirl.create(:activerecord_sql_payload) }
 
-      let(:json) { 
-        '{"@source":"source","@tags":["sql"],"@fields":{"name":"User Load","sql":"' + 
-        payload[:sql] + '","duration":0.0},"@timestamp":"timestamp"}' + "\n" 
+      let(:json) {
+        '{"@source":"source","tags":["sql"],"@fields":{"name":"User Load","sql":"' +
+        payload[:sql] + '","duration":0.0},"@timestamp":' + timestamp.to_json + ', "@version":"1"}' + "\n"
       }
 
       it 'calls all extractors and outputs the json' do
-        subscriber.should_receive(:extract_sql).with(payload).and_return({:sql => true})
-        subscriber.should_receive(:extract_current_scope).with(no_args).and_return({:custom => true})
+        expect(subscriber).to receive(:extract_sql).with(payload).and_return({:sql => true})
+        expect(subscriber).to receive(:extract_current_scope).with(no_args).and_return({:custom => true})
         subscriber.sql(event)
       end
 
       it "logs the event" do
         subscriber.sql(event)
 
-        logger.messages.first.should == json
+        expect(JSON.parse(logger.messages.first)).to eq(JSON.parse(json))
       end
     end
   end
@@ -106,42 +107,42 @@ describe Stasher::LogSubscriber do
       )
     }
 
-    let(:json) { 
-      '{"@source":"source","@tags":["response"],"@fields":{"method":"GET","ip":"127.0.0.1","params":{"foo":"bar"},' +
-      '"path":"/home","format":"application/json","controller":"home","action":"index","status":200,' + 
-      '"duration":0.0,"view":0.01,"db":0.02},"@timestamp":"timestamp"}' + "\n" 
+    let(:json) {
+      '{"@source":"source","tags":["response"],"@fields":{"method":"GET","ip":"127.0.0.1","params":{"foo":"bar"},' +
+      '"path":"/home","format":"application/json","controller":"home","action":"index","status":200,' +
+      '"duration":0.0,"view":0.01,"db":0.02},"@timestamp":' + timestamp.to_json + ', "@version":"1"}' + "\n"
     }
 
     it 'calls all extractors and outputs the json' do
-      subscriber.should_receive(:extract_request).with(payload).and_return({:request => true})
-      subscriber.should_receive(:extract_status).with(payload).and_return({:status => true})
-      subscriber.should_receive(:runtimes).with(event).and_return({:runtimes => true})
-      subscriber.should_receive(:extract_exception).with(payload).and_return({:exception => true})
-      subscriber.should_receive(:extract_current_scope).with(no_args).and_return({:custom => true})
+      expect(subscriber).to receive(:extract_request).with(payload).and_return({:request => true})
+      expect(subscriber).to receive(:extract_status).with(payload).and_return({:status => true})
+      expect(subscriber).to receive(:runtimes).with(event).and_return({:runtimes => true})
+      expect(subscriber).to receive(:extract_exception).with(payload).and_return({:exception => true})
+      expect(subscriber).to receive(:extract_current_scope).with(no_args).and_return({:custom => true})
       subscriber.process_action(event)
     end
 
     it "logs the event" do
       subscriber.process_action(event)
 
-      logger.messages.first.should == json
+      expect(JSON.parse(logger.messages.first)).to eq(JSON.parse(json))
     end
 
     context "when the payload includes an exception" do
       before :each do
         payload[:exception] = [ 'Exception', 'message' ]
-        subscriber.stub(:extract_exception).and_return({})        
+        allow(subscriber).to receive(:extract_exception).and_return({})
       end
 
       it "adds the 'exception' tag" do
         subscriber.process_action(event)
 
-        logger.messages.first.should match %r|"@tags":\["response","exception"\]|
+        expect(logger.messages.first).to match %r|"tags":\["response","exception"\]|
       end
     end
 
     it "clears the scoped parameters" do
-      Stasher::CurrentScope.should_receive(:clear!)
+      expect(Stasher::CurrentScope).to receive(:clear!)
 
       subscriber.process_action(event)
     end
@@ -153,7 +154,7 @@ describe Stasher::LogSubscriber do
 
       it "adds the location to the log line" do
         subscriber.process_action(event)
-        logger.messages.first.should match %r|"@fields":{.*?"location":"http://www\.example\.com".*?}|
+        expect(logger.messages.first).to match %r|"@fields":{.*?"location":"http://www\.example\.com".*?}|
       end
     end
   end
@@ -162,19 +163,19 @@ describe Stasher::LogSubscriber do
     it "sets the type as a @tag" do
       subscriber.send :log_event, 'tag', {}
 
-      logger.messages.first.should match %r|"@tags":\["tag"\]|
+      expect(logger.messages.first).to match %r|"tags":\["tag"\]|
     end
 
     it "renders the data in the @fields" do
       subscriber.send :log_event, 'tag', { "foo" => "bar", :baz => 'bot' }
 
-      logger.messages.first.should match %r|"@fields":{"foo":"bar","baz":"bot"}|
+      expect(logger.messages.first).to match %r|"@fields":{"foo":"bar","baz":"bot"}|
     end
 
     it "sets the @source" do
       subscriber.send :log_event, 'tag', {}
 
-      logger.messages.first.should match %r|"@source":"source"|
+      expect(logger.messages.first).to match %r|"@source":"source"|
     end
 
     context "with a block" do
@@ -184,8 +185,8 @@ describe Stasher::LogSubscriber do
           yielded << args
         end
 
-        yielded.size.should == 1
-        yielded.first.should be_a(LogStash::Event)
+        expect(yielded.size).to eq(1)
+        expect(yielded.first).to be_a(LogStash::Event)
       end
 
       it "logs the modified event" do
@@ -193,7 +194,7 @@ describe Stasher::LogSubscriber do
           event.tags << "extra"
         end
 
-        logger.messages.first.should match %r|"@tags":\["tag","extra"\]|
+        expect(logger.messages.first).to match %r|"tags":\["tag","extra"\]|
       end
     end
   end
@@ -205,10 +206,10 @@ describe Stasher::LogSubscriber do
       )
     }
 
-    it "stores the payload location in the current scope" do     
+    it "stores the payload location in the current scope" do
       subscriber.redirect_to(event)
 
-      Stasher::CurrentScope.fields[:location].should == "http://example.com"
+      expect(Stasher::CurrentScope.fields[:location]).to eq("http://example.com")
     end
   end
 end

@@ -10,25 +10,25 @@ describe Stasher::CurrentScope do
     it "removes all existing fields" do
       Stasher::CurrentScope.clear!
 
-      Stasher::CurrentScope.fields.should == {}
+      expect(Stasher::CurrentScope.fields).to eq({})
     end
   end
 
-  describe ".fields" do 
+  describe ".fields" do
     before :each do
       Stasher::CurrentScope.fields = { :foo => "bar" }
     end
 
     it "can retrive a value" do
-      Stasher::CurrentScope.fields[:foo].should == "bar"
+      expect(Stasher::CurrentScope.fields[:foo]).to eq("bar")
     end
   end
 
-  describe ".fields=" do 
+  describe ".fields=" do
     it "can assign all fields at once" do
       Stasher::CurrentScope.fields = { :foo => "bar" }
 
-      Stasher::CurrentScope.fields[:foo].should == "bar"
+      expect(Stasher::CurrentScope.fields[:foo]).to eq("bar")
     end
 
     it "overwrites exisitng fields" do
@@ -36,7 +36,7 @@ describe Stasher::CurrentScope do
 
       Stasher::CurrentScope.fields = { :foo => "bar" }
 
-      Stasher::CurrentScope.fields.should == { :foo => "bar" }
+      expect(Stasher::CurrentScope.fields).to eq({ :foo => "bar" })
     end
   end
 end
